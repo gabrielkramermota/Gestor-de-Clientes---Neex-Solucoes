@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Criar Cliente</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cleave.js/1.6.0/cleave.min.js"></script>
+</head>
+
+<body class="bg-[#151515] text-white">
+  <div class="flex">
+    <!-- Sidebar -->
+    <nav class="w-64 bg-[#202020] text-white h-screen p-5">
+      <h1 class="text-purple-400 text-3xl font-black mb-6">Neex Soluções</h1>
+      <ul class="space-y-4">
+          <li><a href="index.html" class="hover:text-purple-500 text-lg font-bold uppercase ">Home</a></li>
+          <li><a href="createClient.html" class="hover:text-purple-500 text-lg font-bold uppercase ">Criar Cliente</a></li>
+          <li><a href="clientsTable.html" class="hover:text-purple-500 text-lg font-bold uppercase">Clientes</a></li>
+          <li><a href="info.html" class="hover:text-purple-500 text-lg font-bold uppercase">Info do App</a></li>
+      </ul>
+  </nav>
+
+    <div class="flex-1 p-8">
+      <h2 class="text-2xl font-semibold mb-4">Criar Cliente</h2>
+      <form id="clienteForm" class="space-y-6">
+        <div class="flex space-x-4">
+          <div class="w-1/2 space-y-2">
+            <label for="nome" class="block text-sm font-medium text-gray-400">Nome</label>
+            <input id="nome" type="text" placeholder="Digite o nome" class="w-full border p-2 rounded bg-[#202020]">
+          </div>
+          <div class="w-1/2 space-y-2">
+            <label for="email" class="block text-sm font-medium text-gray-400">Email</label>
+            <input id="email" type="email" placeholder="Digite o email" class="w-full border p-2 rounded bg-[#202020]">
+          </div>
+        </div>
+
+        <div class="flex space-x-4">
+          <div class="w-1/2 space-y-2">
+            <label for="telefone" class="block text-sm font-medium text-gray-400">Telefone</label>
+            <input id="telefone" type="text" placeholder="Digite o telefone" class="w-full border p-2 rounded bg-[#202020]">
+          </div>
+          <div class="w-1/2 space-y-2">
+            <label for="plano" class="block text-sm font-medium text-gray-400">Plano</label>
+            <select id="plano" class="w-full border p-2 rounded bg-[#202020]">
+              <option value="">Selecione um plano</option>
+              <option value="basico">Básico</option>
+              <option value="intermediario">Intermediário</option>
+              <option value="premium">Premium</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex space-x-4">
+          <div class="w-1/2 space-y-2">
+            <label for="valor" class="block text-sm font-medium text-gray-400">Valor</label>
+            <input id="valor" type="text" placeholder="Digite o valor" class="w-full border p-2 rounded bg-[#202020]">
+          </div>
+          <div class="w-1/2 space-y-2">
+            <label for="vencimento" class="block text-sm font-medium text-gray-400">Data de Vencimento</label>
+            <input id="vencimento" type="date" class="w-full border p-2 rounded bg-[#202020]">
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <label for="status" class="block text-sm font-medium text-gray-400">Status</label>
+          <select id="status" class="w-full border p-2 rounded bg-[#202020]">
+            <option value="">Selecione o status</option>
+            <option value="inativo">Inativo</option>
+            <option value="pendente">Pendente</option>
+            <option value="ativo">Ativo</option>
+            <option value="7dias">7 Dias</option>
+          </select>
+        </div>
+
+        <button type="button" onclick="createCliente()" class="bg-purple-500 hover:bg-purple-400 duration-300 text-white p-2 rounded w-full">Criar Cliente</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    new Cleave('#telefone', { phone: true, phoneRegionCode: 'BR' });
+    new Cleave('#valor', { numeral: true, numeralThousandsGroupStyle: 'thousand', prefix: 'R$ ', rawValue: true });
+
+    function handleStatusChange() {
+      const status = document.getElementById('status');
+      const vencimento = document.getElementById('vencimento');
+      
+      if (status.value === '7dias') {
+        vencimento.disabled = true;
+        const hoje = new Date();
+        hoje.setDate(hoje.getDate() + 7);
+        vencimento.value = hoje.toISOString().split('T')[0];
+      } else {
+        vencimento.disabled = false;
+        vencimento.value = '';
+      }
+    }
+
+    document.getElementById('status').addEventListener('change', handleStatusChange);
+
+    async function createCliente() {
+      if (!validarCampos()) return;
+
+      const clienteData = {
+        nome: document.getElementById('nome').value,
+        email: document.getElementById('email').value,
+        telefone: document.getElementById('telefone').value,
+        plano: document.getElementById('plano').value,
+        valor: document.getElementById('valor').value.replace('R$ ', '').replace('.', '').replace(',', '.'),
+        vencimento: document.getElementById('vencimento').value,
+        status: document.getElementById('status').value
+      };
+
+      if (clienteData.status === '7dias') {
+        const hoje = new Date();
+        hoje.setDate(hoje.getDate() + 7);
+        clienteData.vencimento = hoje.toISOString().split('T')[0];
+      }
+
+      await window.api.createCliente(clienteData);
+      alert("Cliente Criado com Sucesso!");
+      document.getElementById('clienteForm').reset();
+    }
+
+    function validarCampos() {
+      // Adicione as validações aqui conforme necessário.
+      return true;
+    }
+
+    window.addEventListener('load', handleStatusChange);
+  </script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+{
+  "name": "client-neex",
+  "version": "1.0.0",
+  "main": "main.js",
+  "description": "Aplicativo de Gestão de Clientes",
+  "author": "Kramer",
+  "license": "ISC",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8",
+    "prisma": "^5.22.0"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "chart.js": "^4.4.6",
+    "dotenv": "^16.4.5"
+  },
+ "build": {
+    "appId": "com.seuprojeto.app",
+    "productName": "Gestor de Clientes Simples - Neex Soluções",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "node_modules/**/*",
+      "src/**/*",
+      ".env"
+    ],
+    "extraResources": [
+      {
+        "from": "prisma",
+        "to": "app/prisma"
+      },
+      {
+        "from": "node_modules/.prisma",
+        "to": "app/.prisma"
+      }
+    ],
+    "asar": true,
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "src/public/logo.png"
+    }
+  }
+
+}

@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clientes</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+</head>
+
+<body class="bg-[#151515] text-white">
+  <div class="flex">
+    <!-- Sidebar -->
+    <nav class="w-64 bg-[#202020] text-white h-screen p-5">
+      <h1 class="text-purple-400 text-3xl font-black mb-6">Neex Soluções</h1>
+      <ul class="space-y-4">
+        <li><a href="index.html" class="hover:text-purple-500 text-lg font-bold uppercase ">Home</a></li>
+        <li><a href="createClient.html" class="hover:text-purple-500 text-lg font-bold uppercase ">Criar Cliente</a>
+        </li>
+        <li><a href="clientsTable.html" class="hover:text-purple-500 text-lg font-bold uppercase">Clientes</a></li>
+        <li><a href="info.html" class="hover:text-purple-500 text-lg font-bold uppercase">Info do App</a></li>
+      </ul>
+    </nav>
+
+    <div class="container mx-auto p-6">
+      <h1 class="text-3xl font-bold mb-6 text-center">Gestão de Clientes</h1>
+
+      <!-- Filtros e Opções de Exportação -->
+      <div class="flex flex-col gap-4 mb-6">
+        <div class="flex items-center gap-4">
+          <label for="searchInput" class="font-semibold">Pesquisar Cliente:</label>
+          <input id="searchInput" type="text" placeholder="Pesquisar cliente por nome"
+            class="p-2 border rounded-md bg-[#202020]" oninput="applyFilters()">
+        </div>
+
+        <div class="flex gap-4 items-center">
+          <div>
+            <label for="startDate" class="font-semibold">Data de Início:</label>
+            <input id="startDate" type="date" class="p-2 border rounded-md bg-[#202020]" onchange="applyFilters()">
+          </div>
+          <div>
+            <label for="endDate" class="font-semibold">Data de Fim:</label>
+            <input id="endDate" type="date" class="p-2 border rounded-md bg-[#202020]" onchange="applyFilters()">
+          </div>
+          <div>
+            <label for="statusFilter" class="font-semibold">Status:</label>
+            <select id="statusFilter" class="p-2 border rounded-md bg-[#202020]" onchange="applyFilters()">
+              <option value="">Todos</option>
+              <option value="ativo">Ativo</option>
+              <option value="inativo">Inativo</option>
+              <option value="pendente">Pendente</option>
+              <option value="7dias">7 Dias</option>
+            </select>
+          </div>
+          <button onclick="exportToExcel()" class="bg-green-500 text-white px-4 py-2 rounded-md">Exportar para
+            Excel</button>
+          <button onclick="exportToPDF()" class="bg-blue-500 text-white px-4 py-2 rounded-md">Exportar para PDF</button>
+        </div>
+      </div>
+
+      <!-- Tabela de Clientes -->
+      <table class="min-w-full bg-[#202020] shadow-lg rounded-lg overflow-hidden ">
+        <thead class="">
+          <tr>
+            <th class="p-4 text-left">ID</th>
+            <th class="p-4 text-left">Nome</th>
+            <th class="p-4 text-left">Plano</th>
+            <th class="p-4 text-left">Valor</th>
+            <th class="p-4 text-left">Vencimento</th>
+            <th class="p-4 text-left">Status</th>
+            <th class="p-4 text-left">Ações</th>
+          </tr>
+        </thead>
+        <tbody id="clientesTable">
+          <!-- Dados dos clientes serão inseridos aqui -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    let clientes = [];
+
+    async function loadClientes() {
+      clientes = await window.api.getClientes();
+      applyFilters();
+    }
+
+    function applyFilters() {
+      const query = document.getElementById('searchInput').value.toLowerCase();
+      const startDate = document.getElementById('startDate').value;
+      const endDate = document.getElementById('endDate').value;
+      const status = document.getElementById('statusFilter').value;
+
+      const clientesFiltrados = clientes.filter(cliente => {
+        const matchesQuery = cliente.nome.toLowerCase().includes(query);
+        const matchesStatus = !status || cliente.status === status;
+        const vencimentoDate = new Date(cliente.vencimento);
+
+        // Ajustando a comparação de data de início
+        const matchesStartDate = !startDate || vencimentoDate >= new Date(startDate + 'T00:00:00'); // Definindo hora para 00:00:00
+
+        // Ajustando a comparação de data de fim
+        let matchesEndDate = true;
+        if (endDate) {
+          const endDateObj = new Date(endDate + 'T23:59:59'); // Definindo hora para 23:59:59
+          matchesEndDate = vencimentoDate <= endDateObj;
+        }
+
+        return matchesQuery && matchesStatus && matchesStartDate && matchesEndDate;
+      });
+
+      renderClientes(clientesFiltrados);
+    }
+
+    function renderClientes(clientesFiltrados) {
+      const clientesTable = document.getElementById('clientesTable');
+      clientesTable.innerHTML = '';
+
+      clientesFiltrados.forEach(cliente => {
+        const vencimentoDate = new Date(cliente.vencimento);
+
+        // Ajustando a data para o fuso horário correto
+        const vencimentoFormatado = vencimentoDate.toLocaleDateString('pt-BR', {
+          timeZone: 'UTC' // Forçar a data para o formato UTC, ajustando o fuso horário
+        });
+
+        const statusClass = cliente.status === 'ativo' ? 'bg-green-200 text-green-700' :
+          cliente.status === 'inativo' ? 'bg-red-200 text-red-700' :
+            cliente.status === 'pendente' ? 'bg-yellow-200 text-yellow-700' :
+              cliente.status === '7dias' ? 'bg-purple-200 text-purple-700' : ''; // Nova cor para o status "7 dias"
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+      <td class="p-4 uppercase">${cliente.id}</td>
+      <td class="p-4 uppercase">${cliente.nome}</td>
+      <td class="p-4 uppercase">${cliente.plano}</td>
+      <td class="p-4 uppercase">R$ ${cliente.valor.toFixed(2)}</td>
+      <td class="p-4 uppercase">${vencimentoFormatado}</td>
+      <td class="p-4">
+        <span class="px-3 py-1 rounded-full ${statusClass}">${cliente.status}</span>
+      </td>
+      <td class="p-4 space-x-2">
+        <select onchange="editarStatus(${cliente.id}, this.value)" class="text-gray-300 border rounded px-2 py-1 bg-[#202020]">
+          <option value="">Alterar Status</option>
+          <option value="ativo">Ativo</option>
+          <option value="inativo">Inativo</option>
+          <option value="pendente">Pendente</option>
+          <option value="7dias">7 Dias</option>
+        </select>
+        <button class="text-red-500 hover:text-red-700" onclick="deletarCliente(${cliente.id})">Deletar</button>
+      </td>
+    `;
+        clientesTable.appendChild(row);
+      });
+    }
+
+    function editarStatus(id, status) {
+      if (!status) return;
+      const cliente = clientes.find(cliente => cliente.id === id);
+      cliente.status = status;
+      window.api.updateCliente(id, cliente); // Atualiza o cliente no backend
+      applyFilters(); // Reaplica os filtros e atualiza a tabela
+    }
+
+    function deletarCliente(id) {
+      if (confirm("Tem certeza de que deseja deletar este cliente?")) {
+        clientes = clientes.filter(cliente => cliente.id !== id); // Remove o cliente do array local
+        window.api.deleteCliente(id); // Deleta o cliente no backend
+        applyFilters(); // Reaplica os filtros e atualiza a tabela
+      }
+    }
+
+    function exportToExcel() {
+      const worksheet = XLSX.utils.json_to_sheet(clientes);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Clientes");
+      XLSX.writeFile(workbook, "Clientes.xlsx");
+    }
+
+    function exportToPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      doc.text("Gestão de Clientes", 20, 20);
+      clientes.forEach((cliente, index) => {
+        doc.text(`ID: ${cliente.id} | Nome: ${cliente.nome} | Status: ${cliente.status}`, 20, 30 + (index * 10));
+      });
+      doc.save('clientes.pdf');
+    }
+
+    loadClientes(); // Carrega os clientes ao iniciar a página
+  </script>
+</body>
+
+</html>

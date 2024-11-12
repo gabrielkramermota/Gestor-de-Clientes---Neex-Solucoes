@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gestão de Clientes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> <!-- Para facilitar a requisição -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- CDN do Chart.js -->
+</head>
+
+<body class="bg-[#151515] text-white">
+
+  <!-- Sidebar -->
+  <div class="flex">
+    <!-- Sidebar -->
+    <nav class="w-64 bg-[#202020] text-white h-screen p-5">
+      <h1 class="text-purple-400 text-3xl font-black mb-6">Neex Soluções</h1>
+      <ul class="space-y-4">
+          <li><a href="index.html" class="hover:text-purple-500 text-lg font-bold uppercase ">Home</a></li>
+          <li><a href="createClient.html" class="hover:text-purple-500 text-lg font-bold uppercase ">Criar Cliente</a></li>
+          <li><a href="clientsTable.html" class="hover:text-purple-500 text-lg font-bold uppercase">Clientes</a></li>
+          <li><a href="info.html" class="hover:text-purple-500 text-lg font-bold uppercase">Info do App</a></li>
+      </ul>
+  </nav>
+
+    <!-- Main Content -->
+    <div class="flex-1 p-8">
+      <h2 class="text-2xl font-semibold mb-4">Dashboard</h2>
+      <p class="text-gray-600 mb-6">Aqui você pode gerenciar os clientes e pagamentos.</p>
+
+      <!-- Gráficos e Estatísticas -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <!-- Gráfico de Clientes por Status -->
+        <div class="bg-[#202020] p-6 rounded-lg shadow-lg">
+          <h3 class="text-xl font-semibold mb-4">Clientes por Status</h3>
+          <canvas id="clientesStatusChart" class="w-full h-64"></canvas>
+        </div>
+
+        <!-- Gráfico de Clientes com Vencimento -->
+        <div class="bg-[#202020] p-6 rounded-lg shadow-lg">
+          <h3 class="text-xl font-semibold mb-4">Clientes com Vencimento</h3>
+          <canvas id="clientesVencimentoChart" class="w-full h-64"></canvas>
+        </div>
+      </div>
+
+      <!-- Recent Clientes Section -->
+      <div class="bg-[#202020] p-6 rounded-lg shadow-lg">
+        <h3 class="text-xl font-semibold mb-4">Clientes Recentes</h3>
+        <ul id="clientes-list" class="space-y-2">
+          <!-- Lista de clientes recentes será populada aqui -->
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Função para obter os dados dos clientes
+    async function fetchClientes() {
+      const clientes = await window.api.getClientes(); // Chama a API do Electron
+      const totalClientes = clientes.length;
+      const clientesVencidos = clientes.filter(cliente => new Date(cliente.vencimento) < new Date()).length;
+
+      // Filtra os clientes por status
+      const clientesAtivos = clientes.filter(cliente => cliente.status === 'ativo').length;
+      const clientesPendentes = clientes.filter(cliente => cliente.status === 'pendente').length;
+      const clientesInativos = clientes.filter(cliente => cliente.status === 'inativo').length;
+
+      // Popula a lista de clientes recentes
+      const clientesList = document.getElementById('clientes-list');
+      clientesList.innerHTML = ''; // Limpa a lista antes de popular
+      clientes.slice(0, 5).forEach(cliente => {
+        const listItem = document.createElement('li');
+        listItem.textContent = `${cliente.nome} - Vencimento: ${new Date(cliente.vencimento).toLocaleDateString()}`;
+        clientesList.appendChild(listItem);
+      });
+
+      // Gráfico de Clientes por Status
+      const ctxStatus = document.getElementById('clientesStatusChart').getContext('2d');
+      new Chart(ctxStatus, {
+        type: 'bar', // Tipo de gráfico: barras
+        data: {
+          labels: ['Ativos', 'Pendentes', 'Inativos'], // Rótulos
+          datasets: [{
+            label: 'Quantidade de Clientes',
+            data: [clientesAtivos, clientesPendentes, clientesInativos], // Dados
+            backgroundColor: ['#4CAF50', '#FFEB3B', '#F44336'], // Cores das barras
+            borderColor: ['#388E3C', '#FBC02D', '#D32F2F'], // Cores das bordas
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true, // Faz o gráfico responsivo
+          scales: {
+            y: {
+              beginAtZero: true // Começa a escala Y do gráfico no zero
+            }
+          }
+        }
+      });
+
+      // Gráfico de Clientes com Vencimento
+      const ctxVencimento = document.getElementById('clientesVencimentoChart').getContext('2d');
+      new Chart(ctxVencimento, {
+        type: 'bar', // Tipo de gráfico: barras
+        data: {
+          labels: ['Vencidos'], // Rótulo para categoria
+          datasets: [{
+            label: 'Quantidade de Clientes Vencidos',
+            data: [clientesVencidos], // Dados
+            backgroundColor: ['#F44336'], // Cor para a barra
+            borderColor: ['#D32F2F'], // Cor da borda
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true, // Faz o gráfico responsivo
+          scales: {
+            y: {
+              beginAtZero: true // Começa a escala Y do gráfico no zero
+            }
+          }
+        }
+      });
+    }
+
+    // Chama a função ao carregar a página
+    window.onload = fetchClientes;
+  </script>
+
+</body>
+
+</html>
